@@ -45,8 +45,6 @@ def f' : sol_dif2squares_unit p -> sol_mul_unit p := fun ⟨⟨x, y⟩, h⟩ =>
 lemma f'_bi : Bijective (f' p) := by
   constructor
   · intro a0 a1
-    have h0 := f' p a0; rcases h0 with ⟨h0_val, h0_p⟩
-    have h1 := f' p a1; rcases h1 with ⟨h1_val, h1_p⟩
     intro h; unfold f' at h; simp at h
     rcases h with ⟨h₁, h₂⟩
     have h_plus :
@@ -86,19 +84,11 @@ lemma f'_bi : Bijective (f' p) := by
   apply pow_ne_zero
   apply zmod_2_ne_0
   dsimp
-  ext
-  · simp
+  ext; repeat
     unfold f'
-    simp
     ring_nf
     rw [mul_assoc, inv_mul_cancel, mul_one]
     apply zmod_2_ne_0
-  simp
-  unfold f'
-  simp
-  ring_nf
-  rw [mul_assoc, inv_mul_cancel, mul_one]
-  apply zmod_2_ne_0
 
 def g' (x : ZMod p) (xnz : x.val ≠ 0) : sol_mul_unit p :=
   let g : ZMod p × ZMod p := ⟨x, 1/x⟩
@@ -121,7 +111,7 @@ lemma g'_bi : Bijective (g' p x) := by
     sorry
   sorry
 
-def h' (x : ZMod p) (xnz : x.val ≠ 0) : ZMod (p - 1) := by
+def h' (x : ZMod p) (_xnz : x.val ≠ 0) : ZMod (p - 1) := by
   exact x - 1
 
 lemma h'_bi : Bijective (h' p x) := by
