@@ -42,6 +42,8 @@ def sol_mul_unit
   Finset.univ.filter (fun (x, y) ↦ x * y = 1)
 --For Lemma 2
 
+
+
 open Function
 
 -- lemma h_to : ∀ x y : ZMod p, (x^2 - y^2 = 1 ↔ (x + y) * (x - y) = 1) := by
@@ -98,9 +100,9 @@ def g' (x : ZMod p) (xnz : x.val ≠ 0) : sol_mul_unit p := by
   constructor
   exact Finset.mem_univ (x, 1/x)
   simp
-  rw [mul_right_inv x]
+  -- rw [mul_right_inv x]
   -- rw [mul_inv_cancel_left hP.ne_zero]
-  -- sorry
+  sorry
 
 lemma g'_bi : Bijective (g' p x) := by
   constructor
@@ -119,7 +121,22 @@ lemma g'_bi : Bijective (g' p x) := by
 PROB FOR NOW:
 def g' x * x⁻¹ = 1
 f'_bi and g'_bi
+def h' and h'_bi below
 -/
+
+
+def h' (x : ZMod p) (xnz : x.val ≠ 0) : ZMod (p - 1) := by
+  exact x - 1
+
+
+lemma h'_bi : Bijective (h' p x) := by
+  constructor
+  · intro a₀ a₁
+    simp
+  intro a₂
+  unfold h'
+  sorry
+
 
 
 
@@ -174,7 +191,12 @@ theorem card_sol_1square
 
 
 lemma card_sol_dif2squares_unit
-    (p : ℕ) [Fact (Nat.Prime p)] (a b : ZMod p) : (sol_dif2squares_unit p).card = p - 1 := by
+    (a b : ZMod p) : (sol_dif2squares_unit p).card = p - 1 := by
+    have : (sol_dif2squares_unit p).card = (sol_mul_unit p).card := by
+      apply Nat.card_eq_of_bijective f'_bi
+    sorry
+
+
     -- have : ∀ a₁ a₂ b₁ b₂ : ZMod p, ((a₁ = a₂ ∧ b₁ = b₂) ↔ (a₁ + b₁ = a₂ + b₂ ∧ a₁ - b₁ = a₂ - b₂)) := by
     --   intro a₁ a₂ b₁ b₂
     --   constructor
@@ -194,7 +216,7 @@ lemma card_sol_dif2squares_unit
 
 
       -- sorry
-    sorry
+    -- sorry
 
 
 
