@@ -33,12 +33,23 @@ def f' : sol_dif2squares_unit p -> sol_mul_unit p := fun ⟨⟨x, y⟩, h⟩ =>
 lemma f'_bi : Bijective (f' p) := by
   constructor
   · intro a0 a1
-    have h0 := f' p a0
-    rcases h0 with ⟨h0_val, h0_p⟩
-    have h1 := f' p a1
-    rcases h1 with ⟨h1_val, h1_p⟩
-    intro h
-    sorry
+    have h0 := f' p a0; rcases h0 with ⟨h0_val, h0_p⟩
+    have h1 := f' p a1; rcases h1 with ⟨h1_val, h1_p⟩
+    intro h; unfold f' at h; simp at h
+    rcases h with ⟨h₁, h₂⟩
+    have h_plus :
+      (a0.1.fst + a0.1.snd) + (a0.1.fst - a0.1.snd) = (a1.1.fst + a1.1.snd) + (a1.1.fst - a1.1.snd) := by
+        exact Mathlib.Tactic.LinearCombination.add_pf h₁ h₂
+    have h_sub :
+      (a0.1.fst + a0.1.snd) - (a0.1.fst - a0.1.snd) = (a1.1.fst + a1.1.snd) - (a1.1.fst - a1.1.snd) := by
+        exact Mathlib.Tactic.LinearCombination.sub_pf h₁ h₂
+    ring_nf at h_plus
+    ring_nf at h_sub
+    have h_plus_1 : a0.1.fst = a1.1.fst := by
+      sorry
+    have h_sub_1 : a0.1.snd = a1.1.snd := by
+      sorry
+    ext <;> assumption
   sorry
 
 def g' (x : ZMod p) (xnz : x.val ≠ 0) : sol_mul_unit p :=
