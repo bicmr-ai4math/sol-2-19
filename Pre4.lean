@@ -32,6 +32,9 @@ def sol_dif2squares_unit : Finset (ZMod p × ZMod p) := Finset.univ.filter <|
 def sol_mul_unit : Finset (ZMod p × ZMod p) := Finset.univ.filter <|
   fun (x, y) ↦ x * y = 1
 
+def sol_ne_zero : Finset (ZMod p) := Finset.univ.filter <|
+  fun x => x ≠ 0
+
 def f' : sol_dif2squares_unit p -> sol_mul_unit p := fun ⟨⟨x, y⟩, h⟩ =>
   let f : ZMod p × ZMod p := ⟨x + y, x - y⟩
   ⟨ f
@@ -90,25 +93,28 @@ lemma f'_bi : Bijective (f' p) := by
     rw [mul_assoc, inv_mul_cancel, mul_one]
     apply zmod_2_ne_0
 
-def g' (x : ZMod p) (xnz : x.val ≠ 0) : sol_mul_unit p :=
+def g' : sol_ne_zero p -> sol_mul_unit p := fun ⟨x, xnz⟩ =>
   let g : ZMod p × ZMod p := ⟨x, 1/x⟩
   ⟨ g
   , by apply Finset.mem_filter.mpr
        constructor
        exact Finset.mem_univ g
        simp; refine (GroupWithZero.mul_inv_cancel x ?_)
-       exact (ZMod.val_eq_zero x).not.mp xnz
+       refine ((ZMod.val_eq_zero x).not.mp ?_)
+       have ⟨_, xnz⟩ := Finset.mem_filter.mp xnz
+       contrapose! xnz
+       exact Iff.mp (ZMod.val_eq_zero x) xnz
   ⟩
 
-lemma g'_bi : Bijective (g' p x) := by
+lemma g'_bi : Bijective (g' p) := by
   constructor
   · intro a₀ a₁
-    have h₀ := g' p x a₀
-    rcases h₀ with ⟨h₀_val, h₀_p⟩
-    have h₁ := g' p x a₁
-    rcases h₁ with ⟨h₁_val, h₁_p⟩
+    have h₀ := g' p a₀; rcases h₀ with ⟨h₀_val, h₀_p⟩
+    have h₁ := g' p a₁; rcases h₁ with ⟨h₁_val, h₁_p⟩
     intro h
     sorry
+  rintro ⟨a, a_in_sol_mul_unit⟩
+  unfold g'; simp
   sorry
 
 def h' (x : ZMod p) (_xnz : x.val ≠ 0) : ZMod (p - 1) := by
