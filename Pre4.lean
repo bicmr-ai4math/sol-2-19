@@ -25,7 +25,7 @@ def f' : sol_dif2squares_unit p -> sol_mul_unit p := fun ⟨⟨x, y⟩, h⟩ =>
   ⟨ f
   , by apply Finset.mem_filter.mpr
        constructor
-       exact Finset.mem_univ (x + y, x - y)
+       exact Finset.mem_univ f
        have ⟨_fst, snd⟩ := Finset.mem_filter.mp h
        ring_nf; exact snd
   ⟩
@@ -85,9 +85,6 @@ theorem card_sol_1square
       exact h
     rw [this, h]; simp
     have : ∀(x : ZMod p), x ∈ sol_1square p 0 ↔ x = 0 := by
-      -- dsimp
-      -- intro x
-      -- rw [Finset.mem_filter] -- why can't rw here?
       intro x
       constructor
       · intro h
@@ -100,7 +97,16 @@ theorem card_sol_1square
 lemma card_sol_dif2squares_unit
     (a b : ZMod p) : (sol_dif2squares_unit p).card = p - 1 := by
     have : (sol_dif2squares_unit p).card = (sol_mul_unit p).card := by
-      -- apply Nat.card_eq_of_bijective f'_bi
+      refine (Finset.card_congr ?_ ?_ ?_ ?_)
+      · have f : (a : ZMod p × ZMod p) → a ∈ sol_dif2squares_unit p → ZMod p × ZMod p :=
+          fun ⟨x, y⟩ => fun xy_in_sol_dif2squares_unit =>
+            have ⟨xs, _⟩  := f' p (Subtype.mk ⟨x, y⟩ xy_in_sol_dif2squares_unit)
+            xs
+        exact f
+      sorry
+      sorry
+      dsimp
+      intro xs xs_in_sol_dif2squares_unit
       sorry
     sorry
 
