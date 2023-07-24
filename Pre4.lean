@@ -64,7 +64,41 @@ lemma f'_bi : Bijective (f' p) := by
       refine (mul_right_cancel₀ ?_ h_sub)
       apply zmod_2_ne_0
     ext <;> assumption
-  sorry
+  unfold Surjective
+  rintro ⟨⟨m, n⟩, mn_in_sol_mul_unit⟩
+  use ?_
+  constructor
+  swap
+  exact ⟨(m + n) / 2, (m - n) / 2⟩
+  apply Finset.mem_filter.mpr
+  constructor
+  dsimp
+  apply Finset.mem_univ
+  dsimp
+  unfold sol_mul_unit at mn_in_sol_mul_unit; simp at mn_in_sol_mul_unit
+  ring_nf
+  rw [mn_in_sol_mul_unit]
+  norm_num
+  apply inv_mul_cancel
+  have : (4 : ZMod p) = 2 ^ 2
+  norm_num
+  rw [this]
+  apply pow_ne_zero
+  apply zmod_2_ne_0
+  dsimp
+  ext
+  · simp
+    unfold f'
+    simp
+    ring_nf
+    rw [mul_assoc, inv_mul_cancel, mul_one]
+    apply zmod_2_ne_0
+  simp
+  unfold f'
+  simp
+  ring_nf
+  rw [mul_assoc, inv_mul_cancel, mul_one]
+  apply zmod_2_ne_0
 
 def g' (x : ZMod p) (xnz : x.val ≠ 0) : sol_mul_unit p :=
   let g : ZMod p × ZMod p := ⟨x, 1/x⟩
