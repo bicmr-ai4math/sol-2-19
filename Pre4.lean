@@ -41,17 +41,15 @@ lemma f'_bi : Bijective (f' p) := by
     sorry
   sorry
 
-def g' (x : ZMod p) (xnz : x.val ≠ 0) : sol_mul_unit p := by
-  constructor
-  swap
-  constructor
-  exact x
-  exact 1/x
-  apply Finset.mem_filter.mpr
-  constructor
-  exact Finset.mem_univ (x, 1/x)
-  simp
-  sorry
+def g' (x : ZMod p) (xnz : x.val ≠ 0) : sol_mul_unit p :=
+  let g : ZMod p × ZMod p := ⟨x, 1/x⟩
+  ⟨ g
+  , by apply Finset.mem_filter.mpr
+       constructor
+       exact Finset.mem_univ g
+       simp; refine (GroupWithZero.mul_inv_cancel x ?_)
+       exact (ZMod.val_eq_zero x).not.mp xnz
+  ⟩
 
 lemma g'_bi : Bijective (g' p x) := by
   constructor
@@ -100,7 +98,7 @@ lemma card_sol_dif2squares_unit
       refine (Finset.card_congr ?_ ?_ ?_ ?_)
       · have f : (a : ZMod p × ZMod p) → a ∈ sol_dif2squares_unit p → ZMod p × ZMod p :=
           fun ⟨x, y⟩ => fun xy_in_sol_dif2squares_unit =>
-            have ⟨xs, _⟩  := f' p (Subtype.mk ⟨x, y⟩ xy_in_sol_dif2squares_unit)
+            have ⟨xs, _⟩ := f' p (Subtype.mk ⟨x, y⟩ xy_in_sol_dif2squares_unit)
             xs
         exact f
       sorry
