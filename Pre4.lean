@@ -6,7 +6,19 @@ import Mathlib.Data.Real.Basic
 open Function
 
 variable (n : ℕ)
-variable (p : ℕ) [Fact (Nat.Prime p)]
+variable (p : ℕ) [pPrime : Fact (Nat.Prime p)] [p_gt_2 : Fact (p > 2)]
+
+lemma zmod_2_ne_0 : (2 : ZMod p) ≠ (0 : ZMod p) := by
+  intro h
+  cases p with
+  | zero =>
+    simpa using p_gt_2.out
+  | succ p =>
+    have := congr_arg ZMod.val h
+    change 2 % (p + 1) = 0 % (p + 1) at this
+    simp at this
+    rw [Nat.mod_eq_of_lt Fact.out] at this
+    simp at this
 
 def sol_sum2squares : Finset (ZMod p × ZMod p) := Finset.univ.filter <|
   fun (x, y) ↦ x^2 + y^2 = 1
@@ -25,7 +37,7 @@ def f' : sol_dif2squares_unit p -> sol_mul_unit p := fun ⟨⟨x, y⟩, h⟩ =>
   ⟨ f
   , by apply Finset.mem_filter.mpr
        constructor
-       exact Finset.mem_univ (x + y, x - y)
+       exact Finset.mem_univ f
        have ⟨_fst, snd⟩ := Finset.mem_filter.mp h
        ring_nf; exact snd
   ⟩
@@ -33,25 +45,36 @@ def f' : sol_dif2squares_unit p -> sol_mul_unit p := fun ⟨⟨x, y⟩, h⟩ =>
 lemma f'_bi : Bijective (f' p) := by
   constructor
   · intro a0 a1
-    have h0 := f' p a0
-    rcases h0 with ⟨h0_val, h0_p⟩
-    have h1 := f' p a1
-    rcases h1 with ⟨h1_val, h1_p⟩
-    intro h
-    sorry
+    have h0 := f' p a0; rcases h0 with ⟨h0_val, h0_p⟩
+    have h1 := f' p a1; rcases h1 with ⟨h1_val, h1_p⟩
+    intro h; unfold f' at h; simp at h
+    rcases h with ⟨h₁, h₂⟩
+    have h_plus :
+      (a0.1.fst + a0.1.snd) + (a0.1.fst - a0.1.snd) = (a1.1.fst + a1.1.snd) + (a1.1.fst - a1.1.snd) := by
+        exact Mathlib.Tactic.LinearCombination.add_pf h₁ h₂
+    have h_sub :
+      (a0.1.fst + a0.1.snd) - (a0.1.fst - a0.1.snd) = (a1.1.fst + a1.1.snd) - (a1.1.fst - a1.1.snd) := by
+        exact Mathlib.Tactic.LinearCombination.sub_pf h₁ h₂
+    ring_nf at h_plus
+    ring_nf at h_sub
+    have h_plus_1 : a0.1.fst = a1.1.fst := by
+      refine (mul_right_cancel₀ ?_ h_plus)
+      apply zmod_2_ne_0
+    have h_sub_1 : a0.1.snd = a1.1.snd := by
+      refine (mul_right_cancel₀ ?_ h_sub)
+      apply zmod_2_ne_0
+    ext <;> assumption
   sorry
 
-def g' (x : ZMod p) (xnz : x.val ≠ 0) : sol_mul_unit p := by
-  constructor
-  swap
-  constructor
-  exact x
-  exact 1/x
-  apply Finset.mem_filter.mpr
-  constructor
-  exact Finset.mem_univ (x, 1/x)
-  simp
-  sorry
+def g' (x : ZMod p) (xnz : x.val ≠ 0) : sol_mul_unit p :=
+  let g : ZMod p × ZMod p := ⟨x, 1/x⟩
+  ⟨ g
+  , by apply Finset.mem_filter.mpr
+       constructor
+       exact Finset.mem_univ g
+       simp; refine (GroupWithZero.mul_inv_cancel x ?_)
+       exact (ZMod.val_eq_zero x).not.mp xnz
+  ⟩
 
 lemma g'_bi : Bijective (g' p x) := by
   constructor
@@ -85,9 +108,6 @@ theorem card_sol_1square
       exact h
     rw [this, h]; simp
     have : ∀(x : ZMod p), x ∈ sol_1square p 0 ↔ x = 0 := by
-      -- dsimp
-      -- intro x
-      -- rw [Finset.mem_filter] -- why can't rw here?
       intro x
       constructor
       · intro h
@@ -100,7 +120,16 @@ theorem card_sol_1square
 lemma card_sol_dif2squares_unit
     (a b : ZMod p) : (sol_dif2squares_unit p).card = p - 1 := by
     have : (sol_dif2squares_unit p).card = (sol_mul_unit p).card := by
-      -- apply Nat.card_eq_of_bijective f'_bi
+      refine (Finset.card_congr ?_ ?_ ?_ ?_)
+      · have f : (a : ZMod p × ZMod p) → a ∈ sol_dif2squares_unit p → ZMod p × ZMod p :=
+          fun ⟨x, y⟩ => fun xy_in_sol_dif2squares_unit =>
+            have ⟨xs, _⟩ := f' p (Subtype.mk ⟨x, y⟩ xy_in_sol_dif2squares_unit)
+            xs
+        exact f
+      sorry
+      sorry
+      dsimp
+      intro xs xs_in_sol_dif2squares_unit
       sorry
     sorry
 
