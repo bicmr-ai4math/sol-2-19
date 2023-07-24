@@ -20,7 +20,7 @@ def sol_sum2squares
 -- def my_sol
 --     {α : Type} [DecidableEq α] [Fintype α] (eq : α → Prop) : Finset α :=
 --   Finset.filter eq Finset.univ
-variable (p : ℕ) [Fact (Nat.Prime p)]
+variable (p : ℕ) [hP : Fact (Nat.Prime p)]
 #check Finset.card (sol_sum2squares p)
 
 def sol_1square
@@ -32,6 +32,9 @@ def sol_dif2squares_unit
   Finset.univ.filter (fun (x, y) ↦ x^2 - y^2 = 1)
 
 
+-- structure ZModPWithoutZero where
+--   n : ZMod p
+--   p : n ≠ 0
 
 --For Lemma 2
 def sol_mul_unit
@@ -68,7 +71,7 @@ def f' : sol_dif2squares_unit p -> sol_mul_unit p := by
   ring
   exact snd
 
-def f'_bi : Bijective (f' p) := by
+lemma f'_bi : Bijective (f' p) := by
   constructor
   · intro a0 a1
     have h0 := f' p a0
@@ -80,19 +83,69 @@ def f'_bi : Bijective (f' p) := by
   sorry
 
 
+-- def g' [inst : Fact (Nat.Prime p)] : ZMod (p-1) -> @sol_mul_unit p inst := by
+--   induction p
+--   sorry
+--   sorry
 
-
-
-
-example (p : ℕ) [Fact (Nat.Prime p)] : Bijective (fun x => x ∈ sol_dif2squares_unit p -> x ∈ sol_mul_unit p) := by
+def g' (x : ZMod p) (xnz : x.val ≠ 0) : sol_mul_unit p := by
   constructor
-  · unfold Injective
-    intro a1 a2
-    simp
-    intro hP
-    unfold sol_dif2squares_unit at hP
+  swap
+  constructor
+  exact x
+  exact 1/x
+  apply Finset.mem_filter.mpr
+  constructor
+  exact Finset.mem_univ (x, 1/x)
+  simp
+  rw [mul_right_inv x]
+  -- rw [mul_inv_cancel_left hP.ne_zero]
+  -- sorry
+
+lemma g'_bi : Bijective (g' p x) := by
+  constructor
+  · intro a₀ a₁
+    have h₀ := g' p x a₀
+    rcases h₀ with ⟨h₀_val, h₀_p⟩
+    have h₁ := g' p x a₁
+    rcases h₁ with ⟨h₁_val, h₁_p⟩
+    intro h
     sorry
   sorry
+
+
+
+/-
+PROB FOR NOW:
+def g' x * x⁻¹ = 1
+f'_bi and g'_bi
+-/
+
+
+
+
+
+
+#check Fintype.card (ZMod p)
+
+
+
+
+
+
+
+
+
+
+-- example (p : ℕ) [Fact (Nat.Prime p)] : Bijective (fun x => x ∈ sol_dif2squares_unit p -> x ∈ sol_mul_unit p) := by
+--   constructor
+--   · unfold Injective
+--     intro a1 a2
+--     simp
+--     intro hP
+--     unfold sol_dif2squares_unit at hP
+--     sorry
+--   sorry
 
 
 theorem card_sol_1square
@@ -141,7 +194,7 @@ lemma card_sol_dif2squares_unit
 
 
       -- sorry
-    -- sorry
+    sorry
 
 
 
