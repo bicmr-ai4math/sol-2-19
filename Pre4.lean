@@ -6,7 +6,19 @@ import Mathlib.Data.Real.Basic
 open Function
 
 variable (n : ℕ)
-variable (p : ℕ) [Fact (Nat.Prime p)]
+variable (p : ℕ) [pPrime : Fact (Nat.Prime p)] [p_gt_2 : Fact (p > 2)]
+
+lemma zmod_2_ne_0 : (2 : ZMod p) ≠ (0 : ZMod p) := by
+  intro h
+  cases p with
+  | zero =>
+    simpa using p_gt_2.out
+  | succ p =>
+    have := congr_arg ZMod.val h
+    change 2 % (p + 1) = 0 % (p + 1) at this
+    simp at this
+    rw [Nat.mod_eq_of_lt Fact.out] at this
+    simp at this
 
 def sol_sum2squares : Finset (ZMod p × ZMod p) := Finset.univ.filter <|
   fun (x, y) ↦ x^2 + y^2 = 1
@@ -46,9 +58,11 @@ lemma f'_bi : Bijective (f' p) := by
     ring_nf at h_plus
     ring_nf at h_sub
     have h_plus_1 : a0.1.fst = a1.1.fst := by
-      sorry
+      refine (mul_right_cancel₀ ?_ h_plus)
+      apply zmod_2_ne_0
     have h_sub_1 : a0.1.snd = a1.1.snd := by
-      sorry
+      refine (mul_right_cancel₀ ?_ h_sub)
+      apply zmod_2_ne_0
     ext <;> assumption
   sorry
 
