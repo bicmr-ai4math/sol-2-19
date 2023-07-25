@@ -235,9 +235,8 @@ theorem card_sol_1square (a : ZMod p) :
       exact this.symm
     exact h' this
 
-
-theorem card_sol_dif2squares_unit
-    (a b : ZMod p) : (sol_dif2squares_unit p).card = p - 1 := by
+lemma card_sol_dif2squares_unit (a b : ZMod p) :
+  (sol_dif2squares_unit p).card = p - 1 := by
     have : (sol_dif2squares_unit p).card = (sol_mul_unit p).card := by
       refine (Finset.card_congr ?_ ?_ ?_ ?_)
       · have f : (a : ZMod p × ZMod p) → a ∈ sol_dif2squares_unit p → ZMod p × ZMod p :=
