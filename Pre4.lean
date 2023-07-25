@@ -164,6 +164,27 @@ lemma card_sol_dif2squares_unit
     sorry
 
 theorem card_sol_sum2squares
-    (p : ℕ) [Fact (Nat.Prime p)] :
-  (sol_sum2squares p).card = 1 - (-1 : ℤ)^((p-1)/2) := by
-  sorry
+    (p : ℕ) [pPrime : Fact p.Prime] [pOdd : Fact (p % 2 = 1)] :
+  (sol_sum2squares p).card = p - (-1 : ℤ)^((p-1)/2) := by
+  -- let A : ZMod p → Finset (ZMod p) := fun x ↦ sol_1square p (1 - x^2)
+  calc
+    ((sol_sum2squares p).card : ℤ) =
+      ∑ x, (sol_1square p (1 - x^2)).card := by
+      sorry
+    _ = ∑ x : ZMod p, (1 + legendreSym p (1 - (x : ℤ)^2)) := by sorry
+    _ = p + ∑ x : ZMod p, legendreSym p (1 - (x : ℤ)^2) := by sorry
+    _ = p + ∑ x : ZMod p, (legendreSym p (-1) * legendreSym p ((x : ℤ)^2 - 1)) := by
+      have : ∀x : ℤ, (1 - x^2) = (-1) * (x^2 - 1) := by intro; ring_nf
+      -- rw [this]
+      sorry
+    _ = p + (-1)^((p-1)/2) * ∑ x : ZMod p, legendreSym p ((x : ℤ)^2 - 1) := by sorry
+    _ = p + (-1)^((p-1)/2) * ∑ x, ((sol_1square p (x^2 - 1)).card - 1) := by sorry
+    _ = p + (-1)^((p-1)/2) * ((sol_dif2squares p).card - p) := by sorry
+    _ = p - (-1)^((p-1)/2) := by
+      rw [card_sol_dif2squares p]
+      have : ↑(p - 1) - p = (-1 : ℤ) := by
+        apply sub_eq_of_eq_add
+        apply Int.coe_pred_of_pos (lt_trans zero_lt_two p_odd)
+      rw [this]
+      ring_nf
+
