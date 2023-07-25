@@ -35,6 +35,9 @@ def sol_mul_unit : Finset (ZMod p × ZMod p) := Finset.univ.filter <|
 def sol_ne_zero : Finset (ZMod p) := Finset.univ.filter <|
   fun x => x ≠ 0
 
+lemma card_sol_ne_zero_p_1 : Finset.card (sol_ne_zero p) = p - 1 := by
+  simp [sol_ne_zero, Finset.filter_ne', Finset.card_univ, ZMod.card]
+
 def f' : sol_dif2squares_unit p -> sol_mul_unit p := fun ⟨⟨x, y⟩, h⟩ =>
   let f : ZMod p × ZMod p := ⟨x + y, x - y⟩
   ⟨ f
@@ -134,17 +137,17 @@ lemma g'_bi : Bijective (g' p) := by
   simp at a₂a₃_in_sol_mul_unit
   exact a₂a₃_in_sol_mul_unit
 
-def h' : sol_ne_zero -> ZMod (p - 1) := fun x =>
-  ⟨ h
-  , by apply Finset.mem_filter.mpr
+-- def h' : sol_ne_zero -> ZMod (p - 1) := fun x =>
+--   ⟨ h
+--   , by apply Finset.mem_filter.mpr
 
-lemma h'_bi : Bijective (h' p x) := by
-  constructor
-  · intro a₀ a₁
-    simp
-  intro a₂
-  unfold h'
-  sorry
+-- lemma h'_bi : Bijective (h' p x) := by
+--   constructor
+--   · intro a₀ a₁
+--     simp
+--   intro a₂
+--   unfold h'
+--   sorry
 
 theorem card_sol_1square (a : ZMod p) :
   (sol_1square p a).card = 1 + legendreSym p a := by
@@ -232,7 +235,6 @@ theorem card_sol_1square (a : ZMod p) :
       exact this.symm
     exact h' this
 
-
 lemma card_sol_dif2squares_unit (a b : ZMod p) :
   (sol_dif2squares_unit p).card = p - 1 := by
     have : (sol_dif2squares_unit p).card = (sol_mul_unit p).card := by
@@ -242,12 +244,77 @@ lemma card_sol_dif2squares_unit (a b : ZMod p) :
             have ⟨xs, _⟩ := f' p (Subtype.mk ⟨x, y⟩ xy_in_sol_dif2squares_unit)
             xs
         exact f
-      sorry
-      sorry
+      · dsimp
+        intro ⟨x, y⟩ ha
+        unfold f'
+        simp
+        apply Finset.mem_filter.mpr
+        simp
+        have ⟨_fst, snd⟩ := Finset.mem_filter.mp ha
+        ring_nf
+        exact snd
+      · dsimp
+        intro a₀ a₁ ha hb
+        intro h
+        unfold f' at h
+        simp at h
+        rcases h with ⟨h₁, h₂⟩
+        have h_plus :
+          (a₀.fst + a₀.snd) + (a₀.fst - a₀.snd) = (a₁.fst + a₁.snd) + (a₁.fst - a₁.snd) := by
+            exact Mathlib.Tactic.LinearCombination.add_pf h₁ h₂
+        have h_sub :
+          (a₀.fst + a₀.snd) - (a₀.fst - a₀.snd) = (a₁.fst + a₁.snd) - (a₁.fst - a₁.snd) := by
+            exact Mathlib.Tactic.LinearCombination.sub_pf h₁ h₂
+        ring_nf at h_plus
+        ring_nf at h_sub
+        have h_plus_1 : a₀.fst = a₁.fst := by
+          refine (mul_right_cancel₀ ?_ h_plus)
+          apply zmod_2_ne_0
+        have h_sub_1 : a₀.snd = a₁.snd := by
+          refine (mul_right_cancel₀ ?_ h_sub)
+          apply zmod_2_ne_0
+        ext <;> dsimp
+        exact h_plus_1
+        exact h_sub_1
       dsimp
-      intro xs xs_in_sol_dif2squares_unit
+      intro ⟨m, n⟩ mn_in_sol_mul_unit
+      use ?_
+      exact ⟨(m + n) / 2, (m - n) / 2⟩
+      dsimp
+      constructor
+      · ext; repeat
+        unfold f'
+        ring_nf
+        rw [mul_assoc, inv_mul_cancel, mul_one]
+        apply zmod_2_ne_0
+      apply Finset.mem_filter.mpr
+      dsimp
+      constructor
+      · apply Finset.mem_univ
+      ring_nf
+      unfold sol_mul_unit at mn_in_sol_mul_unit
+      simp at mn_in_sol_mul_unit
+      rw [mn_in_sol_mul_unit]
+      norm_num
+      apply inv_mul_cancel
+      have : (4 : ZMod p) = 2 ^ 2
+      norm_num
+      rw [this]
+      apply pow_ne_zero
+      apply zmod_2_ne_0
+    rw [this]
+    have : (sol_mul_unit p).card = (sol_ne_zero p).card := by
+      refine (Finset.card_congr ?_ ?_ ?_ ?_)
+      · sorry
+      -- · have g : (a : ZMod p × ZMod p) → a ∈ sol_mul_unit p → ZMod p :=
+      --     fun ⟨x, y⟩ => fun xy_in_sol_mul_unit =>
+      --       have ⟨xt, _⟩ := g' p (Subtype.mk ⟨x, y⟩ xy_in_sol_mul_unit)
+      --   exact g
+      · sorry
+      · sorry
       sorry
-    sorry
+    rw [this]
+    apply card_sol_ne_zero_p_1
 
 theorem card_sol_sum2squares : (sol_sum2squares p).card = 1 - (-1 : ℤ) ^ ((p - 1) / 2) := by
   sorry
