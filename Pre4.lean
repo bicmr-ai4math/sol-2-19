@@ -6,7 +6,7 @@ import Mathlib.Data.Real.Basic
 open Function
 
 variable (n : ℕ)
-variable (p : ℕ) [pPrime : Fact (Nat.Prime p)] [p_gt_2 : Fact (p > 2)]
+variable (p : ℕ) [pPrime : Fact (Nat.Prime p)] [p_gt_2 : Fact (p > 2)] [p_odd : Fact (p % 2 = 1)]
 
 lemma zmod_2_ne_0 : (2 : ZMod p) ≠ (0 : ZMod p) := by
   intro h
@@ -146,8 +146,7 @@ lemma h'_bi : Bijective (h' p x) := by
   unfold h'
   sorry
 
-theorem card_sol_1square
-    (p : ℕ) [pPrime : Fact p.Prime] [pOdd : Fact (p % 2 = 1)] (a : ZMod p) :
+theorem card_sol_1square (a : ZMod p) :
   (sol_1square p a).card = 1 + legendreSym p a := by
   by_cases h : a = 0
   · have : legendreSym p a = 0 := by
@@ -234,8 +233,8 @@ theorem card_sol_1square
     exact h' this
 
 
-lemma card_sol_dif2squares_unit
-    (a b : ZMod p) : (sol_dif2squares_unit p).card = p - 1 := by
+lemma card_sol_dif2squares_unit (a b : ZMod p) :
+  (sol_dif2squares_unit p).card = p - 1 := by
     have : (sol_dif2squares_unit p).card = (sol_mul_unit p).card := by
       refine (Finset.card_congr ?_ ?_ ?_ ?_)
       · have f : (a : ZMod p × ZMod p) → a ∈ sol_dif2squares_unit p → ZMod p × ZMod p :=
@@ -250,7 +249,5 @@ lemma card_sol_dif2squares_unit
       sorry
     sorry
 
-theorem card_sol_sum2squares
-    (p : ℕ) [Fact (Nat.Prime p)] :
-  (sol_sum2squares p).card = 1 - (-1 : ℤ)^((p-1)/2) := by
+theorem card_sol_sum2squares : (sol_sum2squares p).card = 1 - (-1 : ℤ) ^ ((p - 1) / 2) := by
   sorry
