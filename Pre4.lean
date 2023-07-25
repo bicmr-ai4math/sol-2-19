@@ -2,8 +2,12 @@ import Mathlib.Tactic
 import Mathlib.NumberTheory.LegendreSymbol.GaussEisensteinLemmas
 import Mathlib.GroupTheory.SpecificGroups.Cyclic
 import Mathlib.Data.Real.Basic
+import Mathlib.Algebra.BigOperators.Basic
+
 
 open Function
+open BigOperators
+
 
 variable (n : ℕ)
 variable (p : ℕ) [pPrime : Fact (Nat.Prime p)] [p_gt_2 : Fact (p > 2)]
