@@ -112,13 +112,31 @@ lemma g'_bi : Bijective (g' p) := by
     have h₀ := g' p a₀; rcases h₀ with ⟨h₀_val, h₀_p⟩
     have h₁ := g' p a₁; rcases h₁ with ⟨h₁_val, h₁_p⟩
     intro h
-    sorry
-  rintro ⟨a, a_in_sol_mul_unit⟩
-  unfold g'; simp
+    unfold g' at h; simp at h
+    exact SetCoe.ext h
+  rintro ⟨⟨a₂, a₃⟩, a₂a₃_in_sol_mul_unit⟩
+  use ?_
+  constructor
+  swap
+  exact a₂
+  apply Finset.mem_filter.mpr
+  constructor
+  apply Finset.mem_univ
+  unfold sol_mul_unit at a₂a₃_in_sol_mul_unit
+  simp at a₂a₃_in_sol_mul_unit
+  intro h
+  rw [h, zero_mul] at a₂a₃_in_sol_mul_unit
   sorry
+  unfold g'
+  simp
+  refine inv_eq_of_mul_eq_one_right ?right.mk.mk.refine_2.a
+  unfold sol_mul_unit at a₂a₃_in_sol_mul_unit
+  simp at a₂a₃_in_sol_mul_unit
+  exact a₂a₃_in_sol_mul_unit
 
-def h' (x : ZMod p) (_xnz : x.val ≠ 0) : ZMod (p - 1) := by
-  exact x - 1
+def h' : sol_ne_zero -> ZMod (p - 1) := fun x =>
+  ⟨ h
+  , by apply Finset.mem_filter.mpr
 
 lemma h'_bi : Bijective (h' p x) := by
   constructor
