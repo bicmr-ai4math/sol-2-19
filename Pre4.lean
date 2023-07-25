@@ -33,6 +33,17 @@ def sol_mul_unit : Finset (ZMod p × ZMod p) := Finset.univ.filter <|
 def sol_ne_zero : Finset (ZMod p) := Finset.univ.filter <|
   fun x => x ≠ 0
 
+lemma sol_mul_unit_card_sol_ne_zero : sol_mul_unit p ≃ sol_ne_zero p where
+  toFun := fun ⟨⟨x, y⟩, h⟩ ↦ ⟨x, by
+    simp [sol_ne_zero, sol_mul_unit, Finset.mem_filter] at h ⊢
+    intro h'
+    simp [h'] at h⟩
+  invFun := fun ⟨x, h⟩ ↦ ⟨⟨x, x⁻¹⟩, Finset.mem_filter.mpr ⟨Finset.mem_univ _, mul_inv_cancel ((Finset.mem_filter.mp h).2)⟩⟩
+  left_inv := fun ⟨⟨x, y⟩, h⟩ ↦ by
+    simp
+    refine inv_eq_of_mul_eq_one_right (Finset.mem_filter.mp h).2
+  right_inv x := rfl
+
 lemma card_sol_ne_zero_p_1 : Finset.card (sol_ne_zero p) = p - 1 := by
   simp [sol_ne_zero, Finset.filter_ne', Finset.card_univ, ZMod.card]
 
@@ -214,7 +225,7 @@ theorem card_sol_1square (a : ZMod p) :
       exact this.symm
     exact h' this
 
-lemma card_sol_dif2squares_unit (a b : ZMod p) :
+lemma card_sol_dif2squares_unit :
   (sol_dif2squares_unit p).card = p - 1 := by
     have : (sol_dif2squares_unit p).card = (sol_mul_unit p).card := by
       refine (Finset.card_congr ?_ ?_ ?_ ?_)
@@ -282,17 +293,12 @@ lemma card_sol_dif2squares_unit (a b : ZMod p) :
       apply pow_ne_zero
       apply zmod_2_ne_0
     rw [this]
-    have : (sol_mul_unit p).card = (sol_ne_zero p).card := by
-      refine (Finset.card_congr ?_ ?_ ?_ ?_)
-      · sorry
-      -- · have g : (a : ZMod p × ZMod p) → a ∈ sol_mul_unit p → ZMod p :=
-      --     fun ⟨x, y⟩ => fun xy_in_sol_mul_unit =>
-      --       have ⟨xt, _⟩ := g' p (Subtype.mk ⟨x, y⟩ xy_in_sol_mul_unit)
-      --   exact g
-      · sorry
-      · sorry
-      sorry
-    rw [this]
+    have sol_mul_unit_sol_ne_zero : (sol_mul_unit p).card = (sol_ne_zero p).card := by
+      rw [← Fintype.card_coe, ← Fintype.card_coe]
+      symm
+      have := Fintype.ofEquiv_card $ sol_mul_unit_card_sol_ne_zero p
+      convert this
+    rw [sol_mul_unit_sol_ne_zero]
     apply card_sol_ne_zero_p_1
 
 theorem card_sol_sum2squares : (sol_sum2squares p).card = 1 - (-1 : ℤ) ^ ((p - 1) / 2) := by
