@@ -129,23 +129,92 @@ lemma h'_bi : Bijective (h' p x) := by
   sorry
 
 theorem card_sol_1square
-    (p : ℕ) [Fact p.Prime] (a : ZMod p) :
+    (p : ℕ) [pPrime : Fact p.Prime] [pOdd : Fact (p % 2 = 1)] (a : ZMod p) :
   (sol_1square p a).card = 1 + legendreSym p a := by
-  by_cases a = 0
+  by_cases h : a = 0
   · have : legendreSym p a = 0 := by
       apply (legendreSym.eq_zero_iff p a).mpr
       simp
       exact h
     rw [this, h]; simp
-    have : ∀(x : ZMod p), x ∈ sol_1square p 0 ↔ x = 0 := by
+    have : ∀(x : ZMod p), x ∈ sol_1square p 0 ↔ x ∈ {(0:ZMod p)} := by
+      -- intro x
+      -- rw [sol_1square, Finset.mem_filter]
       intro x
       constructor
-      · intro h
-        have : x^2 = 0 := (Finset.mem_filter.mp h).right
-        exact sq_eq_zero_iff.mp this
-      sorry
-    sorry
-  sorry
+      · intro h'
+        have : x = 0 := sq_eq_zero_iff.mp (Finset.mem_filter.mp h').right
+        rw [this]
+        exact Set.mem_singleton 0
+      · intro h'
+        apply Finset.mem_filter.mpr
+        exact ⟨Finset.mem_univ x, sq_eq_zero_iff.mpr h'⟩
+    apply Finset.card_eq_one.mpr
+    use 0
+    -- exact Finset.ext this
+    -- -- doesn't work because "∈" has different types
+    apply Finset.ext
+    simp
+    exact this
+  by_cases h' : IsSquare a
+  · have : legendreSym p a = 1 := by
+      apply (legendreSym.eq_one_iff p ?_).mpr
+      simpa using h'
+      simpa using h
+    rw [this]; ring_nf
+    have ⟨c, csq_eq_a⟩ : ∃c : ZMod p, a = c^2 := (isSquare_iff_exists_sq a).mp h'
+    symm at csq_eq_a
+    rw [Int.coe_nat_eq]; congr
+    apply Finset.card_eq_two.mpr -- another way: show 'card≤2' using 'poly_root', then show 'c≠-c∈sol...'
+    use c, -c
+    constructor
+    · apply ZMod.ne_neg_self
+      intro c0
+      apply h
+      rw [← csq_eq_a]
+      exact sq_eq_zero_iff.mpr c0
+    · ext x
+      constructor
+      · intro hx
+        have xsq_eq_a : x^2 = a := (Finset.mem_filter.mp hx).right
+        simp
+        have : c^2 - x^2 = 0 := by simp [csq_eq_a, xsq_eq_a]
+        -- rw [sq_sub_sq] at this
+        have : x + c = 0 ∨ x - c = 0 := by
+          apply eq_zero_or_eq_zero_of_mul_eq_zero
+          ring_nf
+          rw [sub_eq_zero] at this
+          rw [sub_eq_zero]
+          exact this.symm
+        rcases this with xc | xc
+        · right; exact add_eq_zero_iff_eq_neg.mp xc
+        · left; exact sub_eq_zero.mp xc
+      · intro xc
+        apply Finset.mem_filter.mpr
+        constructor
+        · exact Finset.mem_univ x
+        simp at xc
+        rcases xc with xc | xc
+        · rw [xc]
+          exact csq_eq_a
+        · rw [xc]
+          ring_nf
+          exact csq_eq_a
+  · have : legendreSym p a = -1 := by
+      apply (legendreSym.eq_neg_one_iff p).mpr
+      simp
+      exact h'
+    rw [this]
+    simp
+    apply Finset.eq_empty_iff_forall_not_mem.mpr
+    intro x h''
+    have : x^2 = a := (Finset.mem_filter.mp h'').right
+    have : IsSquare a := by
+      apply (isSquare_iff_exists_sq a).mpr
+      use x
+      exact this.symm
+    exact h' this
+
 
 lemma card_sol_dif2squares_unit
     (a b : ZMod p) : (sol_dif2squares_unit p).card = p - 1 := by
