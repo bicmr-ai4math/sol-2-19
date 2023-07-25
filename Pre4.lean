@@ -1,7 +1,5 @@
 import Mathlib.Tactic
 import Mathlib.NumberTheory.LegendreSymbol.GaussEisensteinLemmas
-import Mathlib.GroupTheory.SpecificGroups.Cyclic
-import Mathlib.Data.Real.Basic
 
 open Function
 
@@ -112,8 +110,6 @@ def g' : sol_ne_zero p -> sol_mul_unit p := fun ⟨x, xnz⟩ =>
 lemma g'_bi : Bijective (g' p) := by
   constructor
   · intro a₀ a₁
-    have h₀ := g' p a₀; rcases h₀ with ⟨h₀_val, h₀_p⟩
-    have h₁ := g' p a₁; rcases h₁ with ⟨h₁_val, h₁_p⟩
     intro h
     unfold g' at h; simp at h
     exact SetCoe.ext h
@@ -129,25 +125,13 @@ lemma g'_bi : Bijective (g' p) := by
   simp at a₂a₃_in_sol_mul_unit
   intro h
   rw [h, zero_mul] at a₂a₃_in_sol_mul_unit
-  sorry
+  · exact zero_ne_one a₂a₃_in_sol_mul_unit
   unfold g'
   simp
   refine inv_eq_of_mul_eq_one_right ?right.mk.mk.refine_2.a
   unfold sol_mul_unit at a₂a₃_in_sol_mul_unit
   simp at a₂a₃_in_sol_mul_unit
   exact a₂a₃_in_sol_mul_unit
-
--- def h' : sol_ne_zero -> ZMod (p - 1) := fun x =>
---   ⟨ h
---   , by apply Finset.mem_filter.mpr
-
--- lemma h'_bi : Bijective (h' p x) := by
---   constructor
---   · intro a₀ a₁
---     simp
---   intro a₂
---   unfold h'
---   sorry
 
 theorem card_sol_1square (a : ZMod p) :
   (sol_1square p a).card = 1 + legendreSym p a := by
@@ -158,8 +142,6 @@ theorem card_sol_1square (a : ZMod p) :
       exact h
     rw [this, h]; simp
     have : ∀(x : ZMod p), x ∈ sol_1square p 0 ↔ x ∈ {(0:ZMod p)} := by
-      -- intro x
-      -- rw [sol_1square, Finset.mem_filter]
       intro x
       constructor
       · intro h'
@@ -171,8 +153,6 @@ theorem card_sol_1square (a : ZMod p) :
         exact ⟨Finset.mem_univ x, sq_eq_zero_iff.mpr h'⟩
     apply Finset.card_eq_one.mpr
     use 0
-    -- exact Finset.ext this
-    -- -- doesn't work because "∈" has different types
     apply Finset.ext
     simp
     exact this
@@ -199,7 +179,6 @@ theorem card_sol_1square (a : ZMod p) :
         have xsq_eq_a : x^2 = a := (Finset.mem_filter.mp hx).right
         simp
         have : c^2 - x^2 = 0 := by simp [csq_eq_a, xsq_eq_a]
-        -- rw [sq_sub_sq] at this
         have : x + c = 0 ∨ x - c = 0 := by
           apply eq_zero_or_eq_zero_of_mul_eq_zero
           ring_nf
