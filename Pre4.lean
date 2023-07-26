@@ -1,305 +1,117 @@
 import Mathlib.Tactic
-import Mathlib.NumberTheory.LegendreSymbol.GaussEisensteinLemmas
+import Mathlib.NumberTheory.LegendreSymbol.Basic
+import Mathlib.NumberTheory.LegendreSymbol.QuadraticChar.Basic
 
-open Function
+import Mathlib.Data.Fintype.Prod
+import Mathlib.Data.Finset.Basic
+import Mathlib.Data.Set.Basic
 
-variable (n : ℕ)
-variable (p : ℕ) [pPrime : Fact (Nat.Prime p)] [p_gt_2 : Fact (p > 2)] [p_odd : Fact (p % 2 = 1)]
+import Mathlib.Data.Set.Pairwise.Basic
 
-lemma zmod_2_ne_0 : (2 : ZMod p) ≠ (0 : ZMod p) := by
-  intro h
-  cases p with
-  | zero =>
-    simpa using p_gt_2.out
-  | succ p =>
-    have := congr_arg ZMod.val h
-    change 2 % (p + 1) = 0 % (p + 1) at this
-    simp at this
-    rw [Nat.mod_eq_of_lt Fact.out] at this
-    simp at this
+open BigOperators
+open Set
 
-def sol_sum2squares : Finset (ZMod p × ZMod p) := Finset.univ.filter <|
-  fun (x, y) ↦ x^2 + y^2 = 1
+#check legendreSym.card_sqrts
+#check quadraticChar_isNontrivial
+#check setOf
+#check Finset.card_disjiUnion
 
-def sol_1square (a : ZMod p) : Finset (ZMod p) := Finset.univ.filter <|
-  fun x ↦ x^2 = a
+variable {p : ℕ} [Fact (Nat.Prime p)] {p_odd : p ≠ 2}
+variable {a b : ℤ}
 
-def sol_dif2squares_unit : Finset (ZMod p × ZMod p) := Finset.univ.filter <|
-  fun (x, y) ↦ x^2 - y^2 = 1
+def card_x_sqrt_eq_a : ℕ := {x : ZMod p | x ^ 2 = a}.toFinset.card
+def card_y_sqrt_eq_b : ℕ := {y : ZMod p | y ^ 2 = b}.toFinset.card
 
-def sol_mul_unit : Finset (ZMod p × ZMod p) := Finset.univ.filter <|
-  fun (x, y) ↦ x * y = 1
+def xs : ZMod p → Finset (ZMod p × ZMod p) :=
+  fun (a : ZMod p) => {xs : ZMod p × ZMod p | xs.1 ^ 2 = a ∧ xs.2 ^ 2 = 1 - a}.toFinset
 
-def sol_ne_zero : Finset (ZMod p) := Finset.univ.filter <|
-  fun x => x ≠ 0
 
-lemma sol_mul_unit_card_sol_ne_zero : sol_mul_unit p ≃ sol_ne_zero p where
-  toFun := fun ⟨⟨x, y⟩, h⟩ ↦ ⟨x, by
-    simp [sol_ne_zero, sol_mul_unit, Finset.mem_filter] at h ⊢
-    intro h'
-    simp [h'] at h⟩
-  invFun := fun ⟨x, h⟩ ↦ ⟨⟨x, x⁻¹⟩, Finset.mem_filter.mpr ⟨Finset.mem_univ _, mul_inv_cancel ((Finset.mem_filter.mp h).2)⟩⟩
-  left_inv := fun ⟨⟨x, y⟩, h⟩ ↦ by
-    simp
-    refine inv_eq_of_mul_eq_one_right (Finset.mem_filter.mp h).2
-  right_inv x := rfl
+example : @card_x_sqrt_eq_a p _ a = legendreSym p a + 1 := by
+  apply legendreSym.card_sqrts
+  exact p_odd
 
-lemma card_sol_ne_zero_p_1 : Finset.card (sol_ne_zero p) = p - 1 := by
-  simp [sol_ne_zero, Finset.filter_ne', Finset.card_univ, ZMod.card]
+example : @card_y_sqrt_eq_b p _ b = legendreSym p b + 1 := by
+  apply legendreSym.card_sqrts
+  exact p_odd
 
-def f' : sol_dif2squares_unit p -> sol_mul_unit p := fun ⟨⟨x, y⟩, h⟩ =>
-  let f : ZMod p × ZMod p := ⟨x + y, x - y⟩
-  ⟨ f
-  , by apply Finset.mem_filter.mpr
-       constructor
-       exact Finset.mem_univ f
-       have ⟨_fst, snd⟩ := Finset.mem_filter.mp h
-       ring_nf; exact snd
-  ⟩
+def x_sqrt_y_sqrt_eq_one : Finset (ZMod p × ZMod p) :=
+  let h := setOf <| fun xs => xs.1 ^ 2 + xs.2 ^ 2 = 1
+  h.toFinset
 
-lemma f'_bi : Bijective (f' p) := by
+
+def x_sqrt_y_sqrt_and : Finset (ZMod p × ZMod p) := toFinset $
+  ⋃ (a : ZMod p), {xs : ZMod p × ZMod p | xs.1 ^ 2 = a ∧ xs.2 ^ 2 = 1 - a}
+
+lemma x_sqrt_y_sqrt_eq_one_eq_x_sqrt_y_sqrt_and :
+  @x_sqrt_y_sqrt_eq_one p _ = x_sqrt_y_sqrt_and := by
+  ext xs
   constructor
-  · intro a0 a1
-    intro h; unfold f' at h; simp at h
-    rcases h with ⟨h₁, h₂⟩
-    have h_plus :
-      (a0.1.fst + a0.1.snd) + (a0.1.fst - a0.1.snd) = (a1.1.fst + a1.1.snd) + (a1.1.fst - a1.1.snd) := by
-        exact Mathlib.Tactic.LinearCombination.add_pf h₁ h₂
-    have h_sub :
-      (a0.1.fst + a0.1.snd) - (a0.1.fst - a0.1.snd) = (a1.1.fst + a1.1.snd) - (a1.1.fst - a1.1.snd) := by
-        exact Mathlib.Tactic.LinearCombination.sub_pf h₁ h₂
-    ring_nf at h_plus
-    ring_nf at h_sub
-    have h_plus_1 : a0.1.fst = a1.1.fst := by
-      refine (mul_right_cancel₀ ?_ h_plus)
-      apply zmod_2_ne_0
-    have h_sub_1 : a0.1.snd = a1.1.snd := by
-      refine (mul_right_cancel₀ ?_ h_sub)
-      apply zmod_2_ne_0
-    ext <;> assumption
-  unfold Surjective
-  rintro ⟨⟨m, n⟩, mn_in_sol_mul_unit⟩
-  use ?_
-  constructor
-  swap
-  exact ⟨(m + n) / 2, (m - n) / 2⟩
-  apply Finset.mem_filter.mpr
-  constructor
-  dsimp
-  apply Finset.mem_univ
-  dsimp
-  unfold sol_mul_unit at mn_in_sol_mul_unit; simp at mn_in_sol_mul_unit
-  ring_nf
-  rw [mn_in_sol_mul_unit]
-  norm_num
-  apply inv_mul_cancel
-  have : (4 : ZMod p) = 2 ^ 2
-  norm_num
-  rw [this]
-  apply pow_ne_zero
-  apply zmod_2_ne_0
-  dsimp
-  ext; repeat
-    unfold f'
-    ring_nf
-    rw [mul_assoc, inv_mul_cancel, mul_one]
-    apply zmod_2_ne_0
-
-def g' : sol_ne_zero p -> sol_mul_unit p := fun ⟨x, xnz⟩ =>
-  let g : ZMod p × ZMod p := ⟨x, 1/x⟩
-  ⟨ g
-  , by apply Finset.mem_filter.mpr
-       constructor
-       exact Finset.mem_univ g
-       simp; refine (GroupWithZero.mul_inv_cancel x ?_)
-       refine ((ZMod.val_eq_zero x).not.mp ?_)
-       have ⟨_, xnz⟩ := Finset.mem_filter.mp xnz
-       contrapose! xnz
-       exact Iff.mp (ZMod.val_eq_zero x) xnz
-  ⟩
-
-lemma g'_bi : Bijective (g' p) := by
-  constructor
-  · intro a₀ a₁
-    intro h
-    unfold g' at h; simp at h
-    exact SetCoe.ext h
-  rintro ⟨⟨a₂, a₃⟩, a₂a₃_in_sol_mul_unit⟩
-  use ?_
-  constructor
-  swap
-  exact a₂
-  apply Finset.mem_filter.mpr
-  constructor
-  apply Finset.mem_univ
-  unfold sol_mul_unit at a₂a₃_in_sol_mul_unit
-  simp at a₂a₃_in_sol_mul_unit
-  intro h
-  rw [h, zero_mul] at a₂a₃_in_sol_mul_unit
-  · exact zero_ne_one a₂a₃_in_sol_mul_unit
-  unfold g'
+  intro xs_in
+  unfold x_sqrt_y_sqrt_and
+  apply (Iff.mpr mem_toFinset)
+  rw [mem_iUnion]
   simp
-  refine inv_eq_of_mul_eq_one_right ?right.mk.mk.refine_2.a
-  unfold sol_mul_unit at a₂a₃_in_sol_mul_unit
-  simp at a₂a₃_in_sol_mul_unit
-  exact a₂a₃_in_sol_mul_unit
+  unfold x_sqrt_y_sqrt_eq_one at xs_in
+  simp at xs_in
+  rw [<- xs_in]
+  ring
+  intro xs_in
+  unfold x_sqrt_y_sqrt_eq_one; simp
+  unfold x_sqrt_y_sqrt_and at xs_in; simp
+  -- apply (Iff.mpr mem_toFinset)
+  simp at xs_in
+  -- rw [mem_iUnion] at xs_in
+  -- rcases xs_in with ⟨i, i_prf⟩
+  -- simp at i_prf
+  -- rw [i_prf.1, i_prf.2]
+  -- simp
+  rw [xs_in]; simp
 
-theorem card_sol_1square (a : ZMod p) :
-  (sol_1square p a).card = 1 + legendreSym p a := by
-  by_cases h : a = 0
-  · have : legendreSym p a = 0 := by
-      apply (legendreSym.eq_zero_iff p a).mpr
-      simp
-      exact h
-    rw [this, h]; simp
-    have : ∀(x : ZMod p), x ∈ sol_1square p 0 ↔ x ∈ {(0:ZMod p)} := by
-      intro x
-      constructor
-      · intro h'
-        have : x = 0 := sq_eq_zero_iff.mp (Finset.mem_filter.mp h').right
-        rw [this]
-        exact Set.mem_singleton 0
-      · intro h'
-        apply Finset.mem_filter.mpr
-        exact ⟨Finset.mem_univ x, sq_eq_zero_iff.mpr h'⟩
-    apply Finset.card_eq_one.mpr
-    use 0
-    apply Finset.ext
-    simp
-    exact this
-  by_cases h' : IsSquare a
-  · have : legendreSym p a = 1 := by
-      apply (legendreSym.eq_one_iff p ?_).mpr
-      simpa using h'
-      simpa using h
-    rw [this]; ring_nf
-    have ⟨c, csq_eq_a⟩ : ∃c : ZMod p, a = c^2 := (isSquare_iff_exists_sq a).mp h'
-    symm at csq_eq_a
-    rw [Int.coe_nat_eq]; congr
-    apply Finset.card_eq_two.mpr -- another way: show 'card≤2' using 'poly_root', then show 'c≠-c∈sol...'
-    use c, -c
-    constructor
-    · apply ZMod.ne_neg_self
-      intro c0
-      apply h
-      rw [← csq_eq_a]
-      exact sq_eq_zero_iff.mpr c0
-    · ext x
-      constructor
-      · intro hx
-        have xsq_eq_a : x^2 = a := (Finset.mem_filter.mp hx).right
-        simp
-        have : c^2 - x^2 = 0 := by simp [csq_eq_a, xsq_eq_a]
-        have : x + c = 0 ∨ x - c = 0 := by
-          apply eq_zero_or_eq_zero_of_mul_eq_zero
-          ring_nf
-          rw [sub_eq_zero] at this
-          rw [sub_eq_zero]
-          exact this.symm
-        rcases this with xc | xc
-        · right; exact add_eq_zero_iff_eq_neg.mp xc
-        · left; exact sub_eq_zero.mp xc
-      · intro xc
-        apply Finset.mem_filter.mpr
-        constructor
-        · exact Finset.mem_univ x
-        simp at xc
-        rcases xc with xc | xc
-        · rw [xc]
-          exact csq_eq_a
-        · rw [xc]
-          ring_nf
-          exact csq_eq_a
-  · have : legendreSym p a = -1 := by
-      apply (legendreSym.eq_neg_one_iff p).mpr
-      simp
-      exact h'
-    rw [this]
-    simp
-    apply Finset.eq_empty_iff_forall_not_mem.mpr
-    intro x h''
-    have : x^2 = a := (Finset.mem_filter.mp h'').right
-    have : IsSquare a := by
-      apply (isSquare_iff_exists_sq a).mpr
-      use x
-      exact this.symm
-    exact h' this
 
-lemma card_sol_dif2squares_unit :
-  (sol_dif2squares_unit p).card = p - 1 := by
-    have : (sol_dif2squares_unit p).card = (sol_mul_unit p).card := by
-      refine (Finset.card_congr ?_ ?_ ?_ ?_)
-      · have f : (a : ZMod p × ZMod p) → a ∈ sol_dif2squares_unit p → ZMod p × ZMod p :=
-          fun ⟨x, y⟩ => fun xy_in_sol_dif2squares_unit =>
-            have ⟨xs, _⟩ := f' p (Subtype.mk ⟨x, y⟩ xy_in_sol_dif2squares_unit)
-            xs
-        exact f
-      · dsimp
-        intro ⟨x, y⟩ ha
-        unfold f'
-        simp
-        apply Finset.mem_filter.mpr
-        simp
-        have ⟨_fst, snd⟩ := Finset.mem_filter.mp ha
-        ring_nf
-        exact snd
-      · dsimp
-        intro a₀ a₁ ha hb
-        intro h
-        unfold f' at h
-        simp at h
-        rcases h with ⟨h₁, h₂⟩
-        have h_plus :
-          (a₀.fst + a₀.snd) + (a₀.fst - a₀.snd) = (a₁.fst + a₁.snd) + (a₁.fst - a₁.snd) := by
-            exact Mathlib.Tactic.LinearCombination.add_pf h₁ h₂
-        have h_sub :
-          (a₀.fst + a₀.snd) - (a₀.fst - a₀.snd) = (a₁.fst + a₁.snd) - (a₁.fst - a₁.snd) := by
-            exact Mathlib.Tactic.LinearCombination.sub_pf h₁ h₂
-        ring_nf at h_plus
-        ring_nf at h_sub
-        have h_plus_1 : a₀.fst = a₁.fst := by
-          refine (mul_right_cancel₀ ?_ h_plus)
-          apply zmod_2_ne_0
-        have h_sub_1 : a₀.snd = a₁.snd := by
-          refine (mul_right_cancel₀ ?_ h_sub)
-          apply zmod_2_ne_0
-        ext <;> dsimp
-        exact h_plus_1
-        exact h_sub_1
-      dsimp
-      intro ⟨m, n⟩ mn_in_sol_mul_unit
-      use ?_
-      exact ⟨(m + n) / 2, (m - n) / 2⟩
-      dsimp
-      constructor
-      · ext; repeat
-        unfold f'
-        ring_nf
-        rw [mul_assoc, inv_mul_cancel, mul_one]
-        apply zmod_2_ne_0
-      apply Finset.mem_filter.mpr
-      dsimp
-      constructor
-      · apply Finset.mem_univ
-      ring_nf
-      unfold sol_mul_unit at mn_in_sol_mul_unit
-      simp at mn_in_sol_mul_unit
-      rw [mn_in_sol_mul_unit]
-      norm_num
-      apply inv_mul_cancel
-      have : (4 : ZMod p) = 2 ^ 2
-      norm_num
-      rw [this]
-      apply pow_ne_zero
-      apply zmod_2_ne_0
-    rw [this]
-    have sol_mul_unit_sol_ne_zero : (sol_mul_unit p).card = (sol_ne_zero p).card := by
-      rw [← Fintype.card_coe, ← Fintype.card_coe]
-      symm
-      have := Fintype.ofEquiv_card $ sol_mul_unit_card_sol_ne_zero p
-      convert this
-    rw [sol_mul_unit_sol_ne_zero]
-    apply card_sol_ne_zero_p_1
+def univ_ : Finset (ZMod p) := Finset.univ
 
-theorem card_sol_sum2squares : (sol_sum2squares p).card = 1 - (-1 : ℤ) ^ ((p - 1) / 2) := by
-  sorry
+#check Finset.disjiUnion
+#check Set.PairwiseDisjoint
+#check Finset.mem_fin
+
+lemma disj_x_sqrt_y_sqrt_and :
+  Set.PairwiseDisjoint univ.toFinset.toSet (@xs p _) := by
+  unfold PairwiseDisjoint
+  intro xs _xs_in_univ ys _ys_in_univ xs_ne_ys
+  unfold Disjoint
+  intro xss
+  intro xss_le
+  unfold xs at xss_le; simp at xss_le
+  intro xss_in; unfold xs at xss_in
+  simp
+  intro yss
+  intro xss_in_yss
+  simp
+  have h0 : yss ∈ {xs_1 | xs_1.fst ^ 2 = xs ∧ xs_1.snd ^ 2 = 1 - xs} := by
+    exact Iff.mp mem_toFinset (xss_le xss_in_yss)
+  have h1 : yss ∈ {xs | xs.fst ^ 2 = ys ∧ xs.snd ^ 2 = 1 - ys} := by
+    exact Iff.mp mem_toFinset (xss_in xss_in_yss)
+  simp at h0; simp at h1
+  have : xs = ys := by
+    rw [<- h0.1, <- h1.1]
+  contradiction
+
+#check Finset.disjiUnion
+
+def dis_j : Finset (ZMod p × ZMod p) := Finset.disjiUnion univ.toFinset (@xs p _) disj_x_sqrt_y_sqrt_and
+
+-- def fin_x_sqrt_y_sqrt_and : Finset (ZMod p × ZMod p) :=
+--   x_sqrt_y_sqrt_and.toFinset
+
+#check Finset.card_disjiUnion
+
+example : (Set.univ : Set (ZMod p)) = ((univ.toFinset).toSet : Set (ZMod p)) := by
+  simp
+
+
+lemma xxx_eq :
+  (@dis_j p _).card = ∑ a in univ.toFinset, (@xs p _ a).card := by
+  -- simp
+  -- unfold x_sqrt_y_sqrt_and; dsimp
+  apply Finset.card_disjiUnion
+  -- refine (@Finset.card_disjiUnion (ZMod p × ZMod p) (ZMod p) univ.toFinset xs ?_)
