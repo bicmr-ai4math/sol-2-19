@@ -1,305 +1,260 @@
 import Mathlib.Tactic
-import Mathlib.NumberTheory.LegendreSymbol.GaussEisensteinLemmas
+import Mathlib.NumberTheory.LegendreSymbol.Basic
+import Mathlib.NumberTheory.LegendreSymbol.QuadraticChar.Basic
+import Mathlib.Data.Fintype.Prod
+import Mathlib.Data.Finset.Basic
+import Mathlib.Data.Set.Basic
+import Mathlib.Data.Set.Pairwise.Basic
 
-open Function
+open BigOperators Set Finset
 
-variable (n : ℕ)
-variable (p : ℕ) [pPrime : Fact (Nat.Prime p)] [p_gt_2 : Fact (p > 2)] [p_odd : Fact (p % 2 = 1)]
+variable {p : ℕ} [Fact (Nat.Prime p)] {p_odd : p ≠ 2}
 
-lemma zmod_2_ne_0 : (2 : ZMod p) ≠ (0 : ZMod p) := by
-  intro h
-  cases p with
-  | zero =>
-    simpa using p_gt_2.out
-  | succ p =>
-    have := congr_arg ZMod.val h
-    change 2 % (p + 1) = 0 % (p + 1) at this
-    simp at this
-    rw [Nat.mod_eq_of_lt Fact.out] at this
-    simp at this
+def sol : Finset (ZMod p × ZMod p) :=
+  {z :ZMod p × ZMod p | z.1 ^ 2 + z.2 ^ 2 = 1}.toFinset
 
-def sol_sum2squares : Finset (ZMod p × ZMod p) := Finset.univ.filter <|
-  fun (x, y) ↦ x^2 + y^2 = 1
+def xs : ZMod p → Finset (ZMod p × ZMod p) :=
+  fun (a : ZMod p) => {x : ZMod p | x ^ 2 = a}.toFinset ×ˢ {y : ZMod p | y ^ 2 = 1-a}.toFinset
 
-def sol_1square (a : ZMod p) : Finset (ZMod p) := Finset.univ.filter <|
-  fun x ↦ x^2 = a
-
-def sol_dif2squares_unit : Finset (ZMod p × ZMod p) := Finset.univ.filter <|
-  fun (x, y) ↦ x^2 - y^2 = 1
-
-def sol_mul_unit : Finset (ZMod p × ZMod p) := Finset.univ.filter <|
-  fun (x, y) ↦ x * y = 1
-
-def sol_ne_zero : Finset (ZMod p) := Finset.univ.filter <|
-  fun x => x ≠ 0
-
-lemma sol_mul_unit_card_sol_ne_zero : sol_mul_unit p ≃ sol_ne_zero p where
-  toFun := fun ⟨⟨x, y⟩, h⟩ ↦ ⟨x, by
-    simp [sol_ne_zero, sol_mul_unit, Finset.mem_filter] at h ⊢
-    intro h'
-    simp [h'] at h⟩
-  invFun := fun ⟨x, h⟩ ↦ ⟨⟨x, x⁻¹⟩, Finset.mem_filter.mpr ⟨Finset.mem_univ _, mul_inv_cancel ((Finset.mem_filter.mp h).2)⟩⟩
-  left_inv := fun ⟨⟨x, y⟩, h⟩ ↦ by
-    simp
-    refine inv_eq_of_mul_eq_one_right (Finset.mem_filter.mp h).2
-  right_inv x := rfl
-
-lemma card_sol_ne_zero_p_1 : Finset.card (sol_ne_zero p) = p - 1 := by
-  simp [sol_ne_zero, Finset.filter_ne', Finset.card_univ, ZMod.card]
-
-def f' : sol_dif2squares_unit p -> sol_mul_unit p := fun ⟨⟨x, y⟩, h⟩ =>
-  let f : ZMod p × ZMod p := ⟨x + y, x - y⟩
-  ⟨ f
-  , by apply Finset.mem_filter.mpr
-       constructor
-       exact Finset.mem_univ f
-       have ⟨_fst, snd⟩ := Finset.mem_filter.mp h
-       ring_nf; exact snd
-  ⟩
-
-lemma f'_bi : Bijective (f' p) := by
-  constructor
-  · intro a0 a1
-    intro h; unfold f' at h; simp at h
-    rcases h with ⟨h₁, h₂⟩
-    have h_plus :
-      (a0.1.fst + a0.1.snd) + (a0.1.fst - a0.1.snd) = (a1.1.fst + a1.1.snd) + (a1.1.fst - a1.1.snd) := by
-        exact Mathlib.Tactic.LinearCombination.add_pf h₁ h₂
-    have h_sub :
-      (a0.1.fst + a0.1.snd) - (a0.1.fst - a0.1.snd) = (a1.1.fst + a1.1.snd) - (a1.1.fst - a1.1.snd) := by
-        exact Mathlib.Tactic.LinearCombination.sub_pf h₁ h₂
-    ring_nf at h_plus
-    ring_nf at h_sub
-    have h_plus_1 : a0.1.fst = a1.1.fst := by
-      refine (mul_right_cancel₀ ?_ h_plus)
-      apply zmod_2_ne_0
-    have h_sub_1 : a0.1.snd = a1.1.snd := by
-      refine (mul_right_cancel₀ ?_ h_sub)
-      apply zmod_2_ne_0
-    ext <;> assumption
-  unfold Surjective
-  rintro ⟨⟨m, n⟩, mn_in_sol_mul_unit⟩
-  use ?_
-  constructor
-  swap
-  exact ⟨(m + n) / 2, (m - n) / 2⟩
-  apply Finset.mem_filter.mpr
-  constructor
-  dsimp
-  apply Finset.mem_univ
-  dsimp
-  unfold sol_mul_unit at mn_in_sol_mul_unit; simp at mn_in_sol_mul_unit
-  ring_nf
-  rw [mn_in_sol_mul_unit]
-  norm_num
-  apply inv_mul_cancel
-  have : (4 : ZMod p) = 2 ^ 2
-  norm_num
-  rw [this]
-  apply pow_ne_zero
-  apply zmod_2_ne_0
-  dsimp
-  ext; repeat
-    unfold f'
-    ring_nf
-    rw [mul_assoc, inv_mul_cancel, mul_one]
-    apply zmod_2_ne_0
-
-def g' : sol_ne_zero p -> sol_mul_unit p := fun ⟨x, xnz⟩ =>
-  let g : ZMod p × ZMod p := ⟨x, 1/x⟩
-  ⟨ g
-  , by apply Finset.mem_filter.mpr
-       constructor
-       exact Finset.mem_univ g
-       simp; refine (GroupWithZero.mul_inv_cancel x ?_)
-       refine ((ZMod.val_eq_zero x).not.mp ?_)
-       have ⟨_, xnz⟩ := Finset.mem_filter.mp xnz
-       contrapose! xnz
-       exact Iff.mp (ZMod.val_eq_zero x) xnz
-  ⟩
-
-lemma g'_bi : Bijective (g' p) := by
-  constructor
-  · intro a₀ a₁
-    intro h
-    unfold g' at h; simp at h
-    exact SetCoe.ext h
-  rintro ⟨⟨a₂, a₃⟩, a₂a₃_in_sol_mul_unit⟩
-  use ?_
-  constructor
-  swap
-  exact a₂
-  apply Finset.mem_filter.mpr
-  constructor
-  apply Finset.mem_univ
-  unfold sol_mul_unit at a₂a₃_in_sol_mul_unit
-  simp at a₂a₃_in_sol_mul_unit
-  intro h
-  rw [h, zero_mul] at a₂a₃_in_sol_mul_unit
-  · exact zero_ne_one a₂a₃_in_sol_mul_unit
-  unfold g'
+lemma disj_of_xs :
+  Set.PairwiseDisjoint univ.toFinset.toSet (@xs p _) := by
+  unfold PairwiseDisjoint
+  intro a _ b _ h
+  unfold Disjoint
+  intro z za zb t tz
   simp
-  refine inv_eq_of_mul_eq_one_right ?right.mk.mk.refine_2.a
-  unfold sol_mul_unit at a₂a₃_in_sol_mul_unit
-  simp at a₂a₃_in_sol_mul_unit
-  exact a₂a₃_in_sol_mul_unit
+  have h1:=za tz
+  have h2:=zb tz
+  unfold xs at h1 h2
+  simp at h1 h2
+  cases' h1 with h1 h3
+  cases' h2 with h2 h4
+  rw [mem_toFinset] at h1 h2
+  simp at h1 h2
+  rw [h1] at h2
+  contradiction
 
-theorem card_sol_1square (a : ZMod p) :
-  (sol_1square p a).card = 1 + legendreSym p a := by
-  by_cases h : a = 0
-  · have : legendreSym p a = 0 := by
-      apply (legendreSym.eq_zero_iff p a).mpr
-      simp
-      exact h
-    rw [this, h]; simp
-    have : ∀(x : ZMod p), x ∈ sol_1square p 0 ↔ x ∈ {(0:ZMod p)} := by
-      intro x
-      constructor
-      · intro h'
-        have : x = 0 := sq_eq_zero_iff.mp (Finset.mem_filter.mp h').right
-        rw [this]
-        exact Set.mem_singleton 0
-      · intro h'
-        apply Finset.mem_filter.mpr
-        exact ⟨Finset.mem_univ x, sq_eq_zero_iff.mpr h'⟩
-    apply Finset.card_eq_one.mpr
-    use 0
-    apply Finset.ext
+def disjiUnion_of_xs : Finset (ZMod p × ZMod p) := disjiUnion univ.toFinset (@xs p _) disj_of_xs
+
+lemma disjeq : @sol p _ = @disjiUnion_of_xs p _ := by
+  unfold disjiUnion_of_xs
+  unfold sol
+  simp
+  unfold xs
+  ext z
+  rw [mem_toFinset,Finset.mem_biUnion]
+  simp
+  constructor
+  intro h
+  use z.fst^2
+  rw [mem_toFinset,mem_toFinset]
+  simp
+  rw [← h];simp
+  intro h
+  cases' h with a h
+  rw [mem_toFinset,mem_toFinset] at h
+  simp at h
+  rw [h.1,h.2]
+  simp
+
+lemma disj_card : (@disjiUnion_of_xs p _).card = ∑ a in univ.toFinset, (@xs p _ a).card := card_disjiUnion _ _ _
+
+lemma xs_card (a:ZMod p) : (@xs p _ a).card =({x : ZMod p | x ^ 2 = a}.toFinset).card * ({y : ZMod p | y ^ 2 = 1-a}.toFinset).card:= card_product _ _
+
+lemma legendreSym_eq_quadraticChar :∀ a :ZMod p,legendreSym p a=quadraticChar (ZMod p) a:= by
+    intro a
+    by_cases h1:a=0
+    have h2:(quadraticChar (ZMod p)) a=0
+    rw [quadraticChar_eq_zero_iff]
+    exact h1
+    have h3 :legendreSym p ↑a=0
+    rw [legendreSym.eq_zero_iff]
     simp
-    exact this
-  by_cases h' : IsSquare a
-  · have : legendreSym p a = 1 := by
-      apply (legendreSym.eq_one_iff p ?_).mpr
-      simpa using h'
-      simpa using h
-    rw [this]; ring_nf
-    have ⟨c, csq_eq_a⟩ : ∃c : ZMod p, a = c^2 := (isSquare_iff_exists_sq a).mp h'
-    symm at csq_eq_a
-    rw [Int.coe_nat_eq]; congr
-    apply Finset.card_eq_two.mpr -- another way: show 'card≤2' using 'poly_root', then show 'c≠-c∈sol...'
-    use c, -c
+    exact h1
+    rw [h2,h3]
+    by_cases h2:IsSquare a
+    have h3:(quadraticChar (ZMod p)) a=1
+    rw [quadraticChar_one_iff_isSquare]
+    exact h2
+    exact h1
+    have h4:legendreSym p ↑a=1
+    rw [legendreSym.eq_one_iff]
+    simp
+    exact h2
+    simp
+    exact h1
+    rw [h3,h4]
+    have h3:(quadraticChar (ZMod p)) a=-1
+    rw [quadraticChar_neg_one_iff_not_isSquare]
+    exact h2
+    have h4:legendreSym p ↑a=-1
+    rw [legendreSym.eq_neg_one_iff]
+    simp
+    exact h2
+    rw [h3,h4]
+
+lemma card_quadraticChar (a :ZMod p) : {x | x ^ 2 = a}.toFinset.card = (quadraticChar (ZMod p) a + 1) := by
+  have h : ↑(a:ℤ) = a
+  simp
+  rw [← h,legendreSym.card_sqrts,legendreSym_eq_quadraticChar,h]
+  assumption
+
+lemma comp1 : Int.ofNat (@sol p _).card = ∑ a in (univ.toFinset : Finset (ZMod p)), (quadraticChar (ZMod p) a + 1) * (quadraticChar (ZMod p) (1-a) + 1) := by
+  rw [disjeq,disj_card]
+  conv => lhs ;simp
+  conv => rhs ;lhs; simp
+  congr
+  ext a
+  rw [xs_card]
+  rw [← card_quadraticChar,← card_quadraticChar]
+  simp
+  repeat assumption
+
+lemma sum_of_quadraticChar : ∑ a in (univ.toFinset : Finset (ZMod p)), (quadraticChar (ZMod p)) a = 0 := by
+  simp
+  apply quadraticChar_sum_zero
+  rw [ZMod.ringChar_zmod_n]
+  exact p_odd
+
+lemma comp2 : ∑ a in (univ.toFinset : Finset (ZMod p)), (quadraticChar (ZMod p) a + 1) * (quadraticChar (ZMod p) (1-a) + 1) = p - (-1)^((p-1)/2) :=
+calc
+  ∑ a in (univ.toFinset : Finset (ZMod p)), (quadraticChar (ZMod p) a + 1) * (quadraticChar (ZMod p) (1-a) + 1) = ∑ a in (univ.toFinset : Finset (ZMod p)), ((quadraticChar (ZMod p) a)*(quadraticChar (ZMod p) (1-a)) +(quadraticChar (ZMod p) a) +(quadraticChar (ZMod p) (1-a))+1) := by
+    simp
+    congr
+    ext a
+    ring
+
+  _ = ∑ a in (univ.toFinset : Finset (ZMod p)), (quadraticChar (ZMod p) a)*(quadraticChar (ZMod p) (1-a))+∑ a in (univ.toFinset : Finset (ZMod p)), (quadraticChar (ZMod p) a)+∑ a in (univ.toFinset : Finset (ZMod p)), (quadraticChar (ZMod p) (1-a))+∑ a in (univ.toFinset : Finset (ZMod p)),1:= by
+    repeat rw [sum_add_distrib]
+
+  _ = ∑ a in (univ.toFinset : Finset (ZMod p)), (quadraticChar (ZMod p) (a*(1-a))) + p :=by
+    have p1 :∑ a in (univ.toFinset : Finset (ZMod p)), (quadraticChar (ZMod p) (1-a))=0
+    have h1 :∑ a in (univ.toFinset : Finset (ZMod p)), (quadraticChar (ZMod p) a)=∑ a in (univ.toFinset : Finset (ZMod p)), quadraticChar (ZMod p) (1-a)
+    let g: ZMod p → ZMod p := fun a => 1-a
+    have h2 : univ.toFinset = Finset.image g univ.toFinset
+    ext a
+    simp
+    use 1-a
+    simp
+    nth_rw 1 [h2]
+    apply sum_image
+    intro x _ y _ h5
+    simp at h5
+    exact h5
+    rw [← h1,sum_of_quadraticChar]
+    exact p_odd
+    have p2 :∑ a in (univ.toFinset : Finset (ZMod p)),1=(p:ℤ)
+    simp
+    rw [card_univ,← Nat.card_eq_fintype_card]
+    simp
+    rw [p1,p2,sum_of_quadraticChar]
+    simp
+    exact p_odd
+
+  _=∑ a in {x : ZMod p | x ≠ 0}.toFinset,(quadraticChar (ZMod p) (a*(1-a))) + p := by
+    have h1 : {x : ZMod p | x ≠ 0}.toFinset = erase univ.toFinset 0
+    ext x
+    simp
+    rw [mem_toFinset]
+    simp
+    rw [h1,sum_erase_eq_sub]
+    simp
+    simp
+
+  _=∑ a in {x : ZMod p | x ≠ 0}.toFinset,(quadraticChar (ZMod p) (a⁻¹-1)) + p := by
+    apply add_right_cancel_iff.mpr
+    apply sum_congr
+    rfl
+    intro a h0
+    rw [mem_toFinset] at h0
+    simp at h0
+    have h1: a*(1-a)=a^2*(a⁻¹-1)
+    rw [mul_sub,mul_sub]
+    simp
+    have h2:a= a ^ 2 * a⁻¹
+    rw [sq,mul_inv_cancel_right₀]
+    exact h0
+    rw [← h2,sq]
+    rw [h1]
+    simp
+    have h3:quadraticCharFun (ZMod p) a ^ 2=1
+    apply quadraticChar_sq_one h0
+    rw [h3]
+    simp
+
+  _=∑ a in {x : ZMod p | x ≠ -1}.toFinset,(quadraticChar (ZMod p) a) + p := by
+    simp
+    symm
+    let g:ZMod p→ ZMod p := fun x => x⁻¹-1
+    have h1:{x : ZMod p | x ≠ -1}.toFinset=Finset.image g {x : ZMod p | x ≠ 0}.toFinset
+    ext x
+    rw [mem_toFinset,Finset.mem_image]
+    simp
     constructor
-    · apply ZMod.ne_neg_self
-      intro c0
-      apply h
-      rw [← csq_eq_a]
-      exact sq_eq_zero_iff.mpr c0
-    · ext x
-      constructor
-      · intro hx
-        have xsq_eq_a : x^2 = a := (Finset.mem_filter.mp hx).right
-        simp
-        have : c^2 - x^2 = 0 := by simp [csq_eq_a, xsq_eq_a]
-        have : x + c = 0 ∨ x - c = 0 := by
-          apply eq_zero_or_eq_zero_of_mul_eq_zero
-          ring_nf
-          rw [sub_eq_zero] at this
-          rw [sub_eq_zero]
-          exact this.symm
-        rcases this with xc | xc
-        · right; exact add_eq_zero_iff_eq_neg.mp xc
-        · left; exact sub_eq_zero.mp xc
-      · intro xc
-        apply Finset.mem_filter.mpr
-        constructor
-        · exact Finset.mem_univ x
-        simp at xc
-        rcases xc with xc | xc
-        · rw [xc]
-          exact csq_eq_a
-        · rw [xc]
-          ring_nf
-          exact csq_eq_a
-  · have : legendreSym p a = -1 := by
-      apply (legendreSym.eq_neg_one_iff p).mpr
-      simp
-      exact h'
-    rw [this]
+    intro h0
+    use (x+1)⁻¹
+    rw [mem_toFinset]
     simp
-    apply Finset.eq_empty_iff_forall_not_mem.mpr
-    intro x h''
-    have : x^2 = a := (Finset.mem_filter.mp h'').right
-    have : IsSquare a := by
-      apply (isSquare_iff_exists_sq a).mpr
-      use x
-      exact this.symm
-    exact h' this
+    contrapose! h0
+    rw [← sub_zero x,← h0]
+    simp
+    intro h1
+    cases' h1 with a h1
+    rw [mem_toFinset] at h1
+    simp at h1
+    cases' h1 with h1 h2
+    contrapose! h1
+    rw [h1] at h2
+    simp at h2
+    exact h2
+    rw [h1]
+    apply sum_image
+    intro x _ y _ h4
+    simp at h4
+    exact h4
 
-lemma card_sol_dif2squares_unit :
-  (sol_dif2squares_unit p).card = p - 1 := by
-    have : (sol_dif2squares_unit p).card = (sol_mul_unit p).card := by
-      refine (Finset.card_congr ?_ ?_ ?_ ?_)
-      · have f : (a : ZMod p × ZMod p) → a ∈ sol_dif2squares_unit p → ZMod p × ZMod p :=
-          fun ⟨x, y⟩ => fun xy_in_sol_dif2squares_unit =>
-            have ⟨xs, _⟩ := f' p (Subtype.mk ⟨x, y⟩ xy_in_sol_dif2squares_unit)
-            xs
-        exact f
-      · dsimp
-        intro ⟨x, y⟩ ha
-        unfold f'
-        simp
-        apply Finset.mem_filter.mpr
-        simp
-        have ⟨_fst, snd⟩ := Finset.mem_filter.mp ha
-        ring_nf
-        exact snd
-      · dsimp
-        intro a₀ a₁ ha hb
-        intro h
-        unfold f' at h
-        simp at h
-        rcases h with ⟨h₁, h₂⟩
-        have h_plus :
-          (a₀.fst + a₀.snd) + (a₀.fst - a₀.snd) = (a₁.fst + a₁.snd) + (a₁.fst - a₁.snd) := by
-            exact Mathlib.Tactic.LinearCombination.add_pf h₁ h₂
-        have h_sub :
-          (a₀.fst + a₀.snd) - (a₀.fst - a₀.snd) = (a₁.fst + a₁.snd) - (a₁.fst - a₁.snd) := by
-            exact Mathlib.Tactic.LinearCombination.sub_pf h₁ h₂
-        ring_nf at h_plus
-        ring_nf at h_sub
-        have h_plus_1 : a₀.fst = a₁.fst := by
-          refine (mul_right_cancel₀ ?_ h_plus)
-          apply zmod_2_ne_0
-        have h_sub_1 : a₀.snd = a₁.snd := by
-          refine (mul_right_cancel₀ ?_ h_sub)
-          apply zmod_2_ne_0
-        ext <;> dsimp
-        exact h_plus_1
-        exact h_sub_1
-      dsimp
-      intro ⟨m, n⟩ mn_in_sol_mul_unit
-      use ?_
-      exact ⟨(m + n) / 2, (m - n) / 2⟩
-      dsimp
-      constructor
-      · ext; repeat
-        unfold f'
-        ring_nf
-        rw [mul_assoc, inv_mul_cancel, mul_one]
-        apply zmod_2_ne_0
-      apply Finset.mem_filter.mpr
-      dsimp
-      constructor
-      · apply Finset.mem_univ
-      ring_nf
-      unfold sol_mul_unit at mn_in_sol_mul_unit
-      simp at mn_in_sol_mul_unit
-      rw [mn_in_sol_mul_unit]
-      norm_num
-      apply inv_mul_cancel
-      have : (4 : ZMod p) = 2 ^ 2
-      norm_num
-      rw [this]
-      apply pow_ne_zero
-      apply zmod_2_ne_0
-    rw [this]
-    have sol_mul_unit_sol_ne_zero : (sol_mul_unit p).card = (sol_ne_zero p).card := by
-      rw [← Fintype.card_coe, ← Fintype.card_coe]
-      symm
-      have := Fintype.ofEquiv_card $ sol_mul_unit_card_sol_ne_zero p
-      convert this
-    rw [sol_mul_unit_sol_ne_zero]
-    apply card_sol_ne_zero_p_1
+  _=p - legendreSym p (-1) := by
+    have h1 : {x : ZMod p | x ≠ -1}.toFinset = erase univ.toFinset (-1)
+    ext x
+    simp
+    rw [mem_toFinset]
+    simp
+    rw [h1,sum_erase_eq_sub,sum_of_quadraticChar,add_comm,sub_eq_add_neg (p:ℤ),add_left_cancel_iff]
+    simp
+    symm
+    have h3:legendreSym p (-1)=legendreSym p (-1:ZMod p)
+    rw [legendreSym.mod,legendreSym.mod p ↑(-1:ZMod p)]
+    have h4:-1 % ↑p=↑(-1:ZMod p) % (↑p:ℤ)
+    rw [← ZMod.int_cast_eq_int_cast_iff']
+    simp
+    rw [h4]
+    rw [h3]
+    apply legendreSym_eq_quadraticChar
+    assumption
+    simp
 
-theorem card_sol_sum2squares : (sol_sum2squares p).card = 1 - (-1 : ℤ) ^ ((p - 1) / 2) := by
-  sorry
+  _=↑p - (-1) ^ ((p-1)/2) := by
+    have h1:= Nat.Prime.mod_two_eq_one_iff_ne_two.mpr p_odd
+    rw [legendreSym.at_neg_one,ZMod.χ₄_eq_neg_one_pow]
+    repeat swap;assumption
+    have h5:p-1+1=p
+    cases' p with p
+    simp at h1
+    rw [Nat.succ_sub_one]
+    have h2:p /2=(p-1)/2
+    have h3: (p-1)%2=0
+    have h4:=Nat.mod_two_add_succ_mod_two (p-1)
+    rw [h5,h1] at h4
+    simp at h4
+    exact h4
+    rw [← Nat.div_add_mod (p-1) 2] at h5
+    nth_rw 3 [← Nat.div_add_mod p 2] at h5
+    rw [h1,h3] at h5
+    simp at h5
+    symm
+    exact h5
+    rw [h2]
+
+lemma card_sol : Int.ofNat (@sol p _).card = p - (-1)^((p-1)/2) := by
+  rw [comp1, comp2]
+  repeat assumption
